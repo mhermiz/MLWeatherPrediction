@@ -63,4 +63,4 @@ cm = confusion_matrix(y_test, y_pred)
 disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=knnModel.classes_)
 disp.plot(cmap='Blues') # color theme
 plt.title('Confusion Matrix - KNN (k=11)')
-plt.show() # display the figure
+# plt.show() # display the figure
