@@ -5,6 +5,8 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
+from sklearn.metrics import accuracy_score, confusion_matrix, ConfusionMatrixDisplay, classification_report
+from sklearn.linear_model import LogisticRegression
 
 # Load dataset
 weatherdata = pd.read_csv('seattle-weather.csv')
@@ -56,11 +58,44 @@ print("Final Test Accuracy:", testaccuracy)
 #new_prediction = knnModel.predict(new_data_scaled)
 #print("New Data Prediction:", new_prediction)
 
-
 # Compare with y_test to see where it gets wrong.
 # Build a confusion matrix to visualize which weather types it confuses
 cm = confusion_matrix(y_test, y_pred)
 disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=knnModel.classes_)
 disp.plot(cmap='Blues') # color theme
 plt.title('Confusion Matrix - KNN (k=11)')
-plt.show() # display the figure
+# plt.show() # display the figure
+
+# ------- LOGISTIC REGRESSION MODEL -------
+
+log_reg_model = LogisticRegression(
+    multi_class='multinomial',
+    max_iter=1000,
+    solver='lbfgs'
+)
+
+log_reg_model.fit(X_train, y_train)
+
+y_pred_log = log_reg_model.predict(X_test)
+acc_log = accuracy_score(y_test, y_pred_log)
+
+print("\nLogistic Regression Test Accuracy:", acc_log)
+print("Logistic Regression Classification Report:\n", classification_report(y_test, y_pred_log, zero_division=0))
+
+# Confusion matrix for Logistic Regression
+cm_log = confusion_matrix(y_test, y_pred_log)
+disp_log = ConfusionMatrixDisplay(confusion_matrix=cm_log, display_labels=log_reg_model.classes_)
+disp_log.plot(cmap='Greens')
+plt.title('Confusion Matrix - Logistic Regression')
+
+# Show plots (uncomment if running in an environment that supports plotting)
+# plt.show()
+
+# ------- SIMPLE COMPARISON TABLE -------
+
+comparison = pd.DataFrame({
+    'Model': ['KNN (k=11)', 'Logistic Regression'],
+    'Test Accuracy': [testaccuracy, acc_log]
+})
+
+print("\nModel Comparison:\n", comparison)
