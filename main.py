@@ -5,13 +5,9 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
-from helpers import get_season
 
 # Load dataset
 weatherdata = pd.read_csv('seattle-weather.csv')
-
-# weatherdata['season'] = weatherdata['date'].apply(get_season)
-# weatherdata = pd.get_dummies(weatherdata, columns=['season'])
 
 # Merge drizzle => rain
 weatherdata['weather'] = weatherdata['weather'].replace({
