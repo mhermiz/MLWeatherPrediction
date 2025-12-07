@@ -7,12 +7,30 @@ from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import (
+    accuracy_score,
+    confusion_matrix,
+    ConfusionMatrixDisplay,
+    classification_report,
+)
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+import matplotlib.pyplot as plt
 
-# Load dataset
+# ------------------ LOAD DATA ------------------
+
 weatherdata = pd.read_csv('seattle-weather.csv')
 
+# Combine minority classes into 'rain'
+weatherdata['weather'] = weatherdata['weather'].replace({
+    'drizzle': 'rain',
+    'snow': 'rain'
+})
+
 # Display first few rows of the dataset
-print(weatherdata.head())
+# print(weatherdata.head())
 
 # Group less frequent weather types into one category
 weatherdata['weather_grouped'] = weatherdata['weather'].replace({"drizzle": "rain", "snow": "rain"})
@@ -23,77 +41,93 @@ X = weatherdata[['temp_max', 'temp_min', 'precipitation', 'wind']]
 y = weatherdata['weather_grouped']
 
 # Split the dataset into training and testing sets
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.3, random_state=42
+)
 
-# Standardize the feature variables
 scaler = StandardScaler()
 X_train = scaler.fit_transform(X_train)
 X_test = scaler.transform(X_test)
 
-# k = 11 is the best result so far
+# ------------------ KNN MODEL (BASELINE) ------------------
+
+# k = 11 is the best
 knnModel = KNeighborsClassifier(n_neighbors=11)
 
-# fit the model: 
-# The .fit() method trains the model on the training data
 knnModel.fit(X_train, y_train)
 
-# Evaluate the model
-# .score() computes the accuracy (correct predictions ÷ total predictions).
-trainaccuracy = knnModel.score(X_train, y_train) # how well it fits the training data
-testaccuracy = knnModel.score(X_test, y_test) # how well it generalizes to unseen data
-trainpredictions = knnModel.predict(X_train) # .predict() gives actual predicted labels
+trainaccuracy_knn = knnModel.score(X_train, y_train)
 
-# test multiple K values to find which gives the best test accuracy
-# The best k is the one with the highest test accuracy
-for k in range(1, 21):
-    knn = KNeighborsClassifier(n_neighbors=k)
-    knn.fit(X_train, y_train)
-    y_pred = knn.predict(X_test)
-    acc = accuracy_score(y_test, y_pred)
-    print(f"k={k}, Test Accuracy={acc:.3f}")
+# Test multiple K values to see performance
+#print("\nKNN accuracy for k = 1 to 20:")
+#best_k = None
+#best_acc = 0.0
 
-print("Train Accuracy:", trainaccuracy)
-print("Predictions:", trainpredictions)
-print("Final Test Accuracy:", testaccuracy)
+#for k in range(1, 21):
+#    knn = KNeighborsClassifier(n_neighbors=k)
+#    knn.fit(X_train, y_train)
+#    y_pred_k = knn.predict(X_test)
+#    acc = accuracy_score(y_test, y_pred_k)
+#    print(f"k={k}, Test Accuracy={acc:.3f}")
+#    if acc > best_acc:
+#        best_acc = acc
+#        best_k = k
 
-# Example prediction for new data
-#new_data = pd.DataFrame([[12.8, 5.0, 0.0, 4.7]], columns=['temp_max', 'temp_min', 'precipitation', 'wind'])  # Example: temp_min=50, precipitation=0.1, wind=5
-#new_data_scaled = scaler.transform(new_data)
-#new_prediction = knnModel.predict(new_data_scaled)
-#print("New Data Prediction:", new_prediction)
+#print(f"\nBest k based on this run: k={best_k}, Test Accuracy={best_acc:.3f}")
 
-# Compare with y_test to see where it gets wrong.
-# Build a confusion matrix to visualize which weather types it confuses
-cm = confusion_matrix(y_test, y_pred)
-disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=knnModel.classes_)
-disp.plot(cmap='Blues') # color theme
-plt.title('Confusion Matrix - KNN (k=11)')
-# plt.show() # display the figure
+# Final KNN predictions with k=11 (chosen model)
+y_pred_knn = knnModel.predict(X_test)
+acc_knn = accuracy_score(y_test, y_pred_knn)
 
-# ------- LOGISTIC REGRESSION MODEL -------
+print("\nKNN Train Accuracy:", trainaccuracy_knn)
+print("KNN Test Accuracy (k=11):", acc_knn)
+print("KNN Classification Report:\n",
+      classification_report(y_test, y_pred_knn, zero_division=0))
 
+# ------------------ LOGISTIC REGRESSION MODEL ------------------
+
+# Logistic Regression model
 log_reg_model = LogisticRegression(
-    multi_class='multinomial',
     max_iter=1000,
     solver='lbfgs'
 )
 
 log_reg_model.fit(X_train, y_train)
 
+# Predictions and accuracy
 y_pred_log = log_reg_model.predict(X_test)
 acc_log = accuracy_score(y_test, y_pred_log)
 
 print("\nLogistic Regression Test Accuracy:", acc_log)
-print("Logistic Regression Classification Report:\n", classification_report(y_test, y_pred_log, zero_division=0))
+print("Logistic Regression Classification Report:\n",
+      classification_report(y_test, y_pred_log, zero_division=0))
 
-# Confusion matrix for Logistic Regression
-cm_log = confusion_matrix(y_test, y_pred_log)
-disp_log = ConfusionMatrixDisplay(confusion_matrix=cm_log, display_labels=log_reg_model.classes_)
-disp_log.plot(cmap='Greens')
+# ------------------ CONFUSION MATRICES FOR BOTH MODELS ------------------
+
+labels = knnModel.classes_
+
+# KNN confusion matrix
+cm_knn = confusion_matrix(y_test, y_pred_knn, labels=labels)
+disp_knn = ConfusionMatrixDisplay(confusion_matrix=cm_knn, display_labels=labels)
+
+plt.figure(figsize=(6, 5))
+disp_knn.plot(cmap='Blues', values_format='d')
+plt.title('Confusion Matrix - KNN (k=11)')
+plt.tight_layout()
+plt.savefig("confusion_matrix_knn.png", dpi=300)
+
+# Logistic Regression confusion matrix
+cm_log = confusion_matrix(y_test, y_pred_log, labels=labels)
+disp_log = ConfusionMatrixDisplay(confusion_matrix=cm_log, display_labels=labels)
+
+plt.figure(figsize=(6, 5))
+disp_log.plot(cmap='Greens', values_format='d')
 plt.title('Confusion Matrix - Logistic Regression')
+plt.tight_layout()
+plt.savefig("confusion_matrix_logreg.png", dpi=300)
 
-# Show plots (uncomment if running in an environment that supports plotting)
-# plt.show()
+# Show plots (comment out if running in a non-GUI environment)
+plt.show()
 
 # ------ RANDOM FOREST CLASSIFIER --------
 rf = RandomForestClassifier(n_estimators=300, max_depth=None, class_weight="balanced", random_state=42)
@@ -116,6 +150,12 @@ plt.show()
 comparison = pd.DataFrame({
     'Model': ['KNN (k=11)', 'Logistic Regression', 'Random Forest'],
     'Test Accuracy': [testaccuracy, acc_log, acc_rf]
+=======
+# ------------------ SIMPLE COMPARISON TABLE ------------------
+
+comparison = pd.DataFrame({
+    'Model': ['KNN (k=11)', 'Logistic Regression'],
+    'Test Accuracy': [acc_knn, acc_log]
 })
 
 print("\nModel Comparison:\n", comparison)
