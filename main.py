@@ -1,12 +1,12 @@
 import numpy as np
 import pandas as pd
-from sklearn.metrics import accuracy_score, confusion_matrix, ConfusionMatrixDisplay
+from sklearn.metrics import accuracy_score, confusion_matrix, ConfusionMatrixDisplay, classification_report
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
-from sklearn.metrics import accuracy_score, confusion_matrix, ConfusionMatrixDisplay, classification_report
 from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
 
 # Load dataset
 weatherdata = pd.read_csv('seattle-weather.csv')
@@ -14,9 +14,13 @@ weatherdata = pd.read_csv('seattle-weather.csv')
 # Display first few rows of the dataset
 print(weatherdata.head())
 
+# Group less frequent weather types into one category
+weatherdata['weather_grouped'] = weatherdata['weather'].replace({"drizzle": "rain", "snow": "rain"})
+weatherdata = weatherdata[weatherdata['weather_grouped'] != "fog"]
+
 # Define features and target variable
 X = weatherdata[['temp_max', 'temp_min', 'precipitation', 'wind']]
-y = weatherdata['weather']
+y = weatherdata['weather_grouped']
 
 # Split the dataset into training and testing sets
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
@@ -91,11 +95,27 @@ plt.title('Confusion Matrix - Logistic Regression')
 # Show plots (uncomment if running in an environment that supports plotting)
 # plt.show()
 
+# ------ RANDOM FOREST CLASSIFIER --------
+rf = RandomForestClassifier(n_estimators=300, max_depth=None, class_weight="balanced", random_state=42)
+rf.fit(X_train, y_train)
+y_pred_rf = rf.predict(X_test)
+acc_rf = accuracy_score(y_test, y_pred_rf)
+
+print("\nRandom Forest Test Accuracy:", acc_rf)
+print("Random Forest Classification Report:\n", classification_report(y_test, y_pred_rf, zero_division=0))
+
+# Confusion matrix for Random Forest
+cm_rf = confusion_matrix(y_test, y_pred_rf)
+disp_rf = ConfusionMatrixDisplay(confusion_matrix=cm_rf, display_labels=rf.classes_)
+disp_rf.plot(cmap='Oranges')
+plt.title('Confusion Matrix - Random Forest')
+plt.show()
+
 # ------- SIMPLE COMPARISON TABLE -------
 
 comparison = pd.DataFrame({
-    'Model': ['KNN (k=11)', 'Logistic Regression'],
-    'Test Accuracy': [testaccuracy, acc_log]
+    'Model': ['KNN (k=11)', 'Logistic Regression', 'Random Forest'],
+    'Test Accuracy': [testaccuracy, acc_log, acc_rf]
 })
 
 print("\nModel Comparison:\n", comparison)
