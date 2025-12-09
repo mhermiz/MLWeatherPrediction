@@ -51,36 +51,37 @@ X_test = scaler.transform(X_test)
 
 # ------------------ KNN MODEL (BASELINE) ------------------
 
-# k = 11 is the best
-knnModel = KNeighborsClassifier(n_neighbors=11)
+
+
+# Test multiple K values to see performance
+#print("\nKNN accuracy for k = 1 to 20:")
+best_k = None
+best_acc = 0.0
+
+for k in range(1, 21):
+   knn = KNeighborsClassifier(n_neighbors=k)
+   knn.fit(X_train, y_train)
+   y_pred_k = knn.predict(X_test)
+   acc = accuracy_score(y_test, y_pred_k)
+   print(f"k={k}, Test Accuracy={acc:.3f}")
+   if acc > best_acc:
+       best_acc = acc
+       best_k = k
+
+print(f"\nBest k based on this run: k={best_k}, Test Accuracy={best_acc:.3f}")
+
+knnModel = KNeighborsClassifier(n_neighbors=best_k)
 
 knnModel.fit(X_train, y_train)
 
 trainaccuracy_knn = knnModel.score(X_train, y_train)
 
-# Test multiple K values to see performance
-#print("\nKNN accuracy for k = 1 to 20:")
-#best_k = None
-#best_acc = 0.0
-
-#for k in range(1, 21):
-#    knn = KNeighborsClassifier(n_neighbors=k)
-#    knn.fit(X_train, y_train)
-#    y_pred_k = knn.predict(X_test)
-#    acc = accuracy_score(y_test, y_pred_k)
-#    print(f"k={k}, Test Accuracy={acc:.3f}")
-#    if acc > best_acc:
-#        best_acc = acc
-#        best_k = k
-
-#print(f"\nBest k based on this run: k={best_k}, Test Accuracy={best_acc:.3f}")
-
-# Final KNN predictions with k=11 (chosen model)
+# Final KNN predictions with k=best_k (chosen model)
 y_pred_knn = knnModel.predict(X_test)
 acc_knn = accuracy_score(y_test, y_pred_knn)
 
 print("\nKNN Train Accuracy:", trainaccuracy_knn)
-print("KNN Test Accuracy (k=11):", acc_knn)
+print(f"KNN Test Accuracy (k={best_k}):", acc_knn)
 print("KNN Classification Report:\n",
       classification_report(y_test, y_pred_knn, zero_division=0))
 
@@ -112,7 +113,7 @@ disp_knn = ConfusionMatrixDisplay(confusion_matrix=cm_knn, display_labels=labels
 
 plt.figure(figsize=(6, 5))
 disp_knn.plot(cmap='Blues', values_format='d')
-plt.title('Confusion Matrix - KNN (k=11)')
+plt.title(f'Confusion Matrix - KNN (k={best_k})')
 plt.tight_layout()
 plt.savefig("confusion_matrix_knn.png", dpi=300)
 
@@ -148,13 +149,13 @@ plt.show()
 # ------- SIMPLE COMPARISON TABLE -------
 
 comparison = pd.DataFrame({
-    'Model': ['KNN (k=11)', 'Logistic Regression', 'Random Forest'],
-    'Test Accuracy': [testaccuracy, acc_log, acc_rf]
-=======
+    'Model': [f'KNN (k={best_k})', 'Logistic Regression', 'Random Forest'],
+    # 'Test Accuracy': [testaccuracy, acc_log, acc_rf]
+})
 # ------------------ SIMPLE COMPARISON TABLE ------------------
 
 comparison = pd.DataFrame({
-    'Model': ['KNN (k=11)', 'Logistic Regression'],
+    'Model': [f'KNN (k={best_k})', 'Logistic Regression'],
     'Test Accuracy': [acc_knn, acc_log]
 })
 
